@@ -268,7 +268,7 @@ class StreamProcessor
      */
     public function stream_stat()
     {
-        return fstat($this->resource);
+        return array();
     }
 
     /**
