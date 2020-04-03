@@ -61,7 +61,7 @@ class CurlHelper
             $headerList = array_merge($headerList, HttpUtil::formatHeadersForCurl($response->getHeaders()));
             $headerList[] = '';
             foreach ($headerList as $header) {
-                call_user_func($curlOptions[CURLOPT_HEADERFUNCTION], $ch, $header);
+                static::callFunction($curlOptions[CURLOPT_HEADERFUNCTION], $ch, $header);
             }
         }
 
@@ -72,7 +72,7 @@ class CurlHelper
         }
 
         if (isset($curlOptions[CURLOPT_WRITEFUNCTION])) {
-            call_user_func($curlOptions[CURLOPT_WRITEFUNCTION], $ch, $body);
+            static::callFunction($curlOptions[CURLOPT_WRITEFUNCTION], $ch, $body);
         } elseif (isset($curlOptions[CURLOPT_RETURNTRANSFER]) && $curlOptions[CURLOPT_RETURNTRANSFER] == true) {
             return $body;
         } elseif (isset($curlOptions[CURLOPT_FILE])) {
@@ -110,6 +110,9 @@ class CurlHelper
                 break;
             case CURLINFO_HEADER_SIZE:
                 $info =  mb_strlen(HttpUtil::formatAsStatusWithHeadersString($response), 'ISO-8859-1');
+                break;
+            case CURLPROXY_HTTPS:
+                $info = '';
                 break;
             default:
                 $info = $response->getCurlInfo($option);
@@ -212,5 +215,28 @@ class CurlHelper
         Assertion::notEmpty($bodySize, 'To set a CURLOPT_READFUNCTION, CURLOPT_INFILESIZE must be set.');
         $body = call_user_func_array($readFunction, array($curlHandle, fopen('php://memory', 'r'), $bodySize));
         $request->setBody($body);
+    }
+
+    /**
+     * A wrapper around call_user_func that attempts to properly handle private
+     * and protected methods on objects.
+     *
+     * @param callable $callback The callable to pass to call_user_func.
+     * @param resource $curlHandle cURL handle associated with the request.
+     * @param mixed $argument The third argument to pass to call_user_func.
+     * @return mixed
+     * @throws \ReflectionException
+     */
+    private static function callFunction($callback, $curlHandle, $argument)
+    {
+        if (!is_callable($callback) && is_array($callback) && count($callback) === 2) {
+            // This is probably a private or protected method on an object. Try and
+            // make it accessible.
+            $method = new \ReflectionMethod($callback[0], $callback[1]);
+            $method->setAccessible(true);
+            return $method->invoke($callback[0], $curlHandle, $argument);
+        } else {
+            return call_user_func($callback, $curlHandle, $argument);
+        }
     }
 }
