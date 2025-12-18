@@ -300,7 +300,11 @@ class StreamProcessor
                 // Use native error handler
                 return false;
             });
-            $result = @stat($path);
+            try {
+                $result = @stat($path);
+            } catch (Throwable) {
+                $result = false;
+            }
             restore_error_handler();
         } else {
             $result = stat($path);
