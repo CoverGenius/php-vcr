@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace VCR\Util;
 
+use Throwable;
 use VCR\CodeTransform\AbstractCodeTransform;
 use VCR\Configuration;
 
