@@ -184,13 +184,18 @@ class CurlHook implements LibraryHook
      *
      * @see http://www.php.net/manual/en/function.curl-multi-add-handle.php
      */
-    public static function curlMultiAddHandle(\CurlMultiHandle $multiHandle, \CurlHandle $curlHandle): void
+    public static function curlMultiAddHandle(\CurlMultiHandle $multiHandle, \CurlHandle $curlHandle): int
     {
         if (!isset(self::$multiHandles[(int) $multiHandle])) {
             self::$multiHandles[(int) $multiHandle] = [];
         }
 
         self::$multiHandles[(int) $multiHandle][(int) $curlHandle] = $curlHandle;
+
+        // Mirror the real curl_multi_add_handle() return contract. Callers such as
+        // Guzzle >= 7.13 strictly check `\CURLM_OK !== $result` and throw otherwise;
+        // returning void (null) here made that check fail with "No error (0)".
+        return \CURLM_OK;
     }
 
     /**
