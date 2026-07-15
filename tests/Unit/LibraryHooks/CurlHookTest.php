@@ -444,7 +444,7 @@ final class CurlHookTest extends TestCase
     public function testCurlMultiAddHandleReturnsCurlmOk(): void
     {
         $this->curlHook->enable(
-          fn (Request $request): Response => new Response('200')
+            fn (Request $request): Response => new Response('200')
         );
 
         $curlHandle = curl_init('http://example.com');
