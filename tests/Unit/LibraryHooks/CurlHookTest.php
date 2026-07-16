@@ -441,6 +441,31 @@ final class CurlHookTest extends TestCase
         );
     }
 
+    public function testCurlMultiAddHandleReturnsCurlmOk(): void
+    {
+        $this->curlHook->enable(
+            fn (Request $request): Response => new Response('200')
+        );
+
+        $curlHandle = curl_init('http://example.com');
+        Assertion::notSame($curlHandle, false);
+
+        $curlMultiHandle = curl_multi_init();
+        Assertion::notSame($curlMultiHandle, false);
+
+        // Real curl_multi_add_handle() returns CURLM_OK (0) on success. Guzzle >= 7.13
+        // strictly checks `\CURLM_OK !== $result` and throws when it is not returned,
+        // so the intercepted call must mirror that contract rather than return void.
+        $result = curl_multi_add_handle($curlMultiHandle, $curlHandle);
+
+        curl_multi_remove_handle($curlMultiHandle, $curlHandle);
+        curl_multi_close($curlMultiHandle);
+
+        $this->curlHook->disable();
+
+        $this->assertSame(\CURLM_OK, $result, 'Intercepted curl_multi_add_handle should return CURLM_OK.');
+    }
+
     /**
      * @requires PHP 5.5.0
      */
